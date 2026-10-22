@@ -1,27 +1,32 @@
 # agent-skills
 
-Personal Claude Code skills. Each skill lives in `skills/<name>/SKILL.md`.
+Personal Claude Code skills, grouped by project or context. Each skill lives in `<group>/skills/<name>/SKILL.md`.
 
-## Skills
+| Group | What it holds |
+|---|---|
+| `phave/` | Workflow and process skills for work at Phave |
+
+## Phave skills
 
 | Skill | Use it for |
 |---|---|
-| [`commit-pr-workflow`](skills/commit-pr-workflow/SKILL.md) | Branching, commit messages, and opening PRs |
-| [`review-checklist`](skills/review-checklist/SKILL.md) | Reviewing a diff or PR against a fixed checklist |
-| [`tdd`](skills/tdd/SKILL.md) | Test-first changes: write a failing test, make it pass, refactor |
+| [`commit-pr-workflow`](phave/skills/commit-pr-workflow/SKILL.md) | Branching, commit messages, and opening PRs |
+| [`review-checklist`](phave/skills/review-checklist/SKILL.md) | Reviewing a diff or PR against a fixed checklist |
+| [`tdd`](phave/skills/tdd/SKILL.md) | Test-first changes: write a failing test, make it pass, refactor |
 
 ## Install
 
 Symlink each skill into your user skills directory so edits here take effect immediately:
 
 ```sh
-./install.sh
+./install.sh          # every group
+./install.sh phave    # just one group
 ```
 
-This links `skills/*` into `~/.claude/skills/`. Restart Claude Code (or start a new session) to pick up new skills.
+This links `<group>/skills/*` into `~/.claude/skills/`. Skill names share one namespace there, so keep names unique across groups. Restart Claude Code (or start a new session) to pick up new skills.
 
 ## Adding a skill
 
-1. Create `skills/<name>/SKILL.md` with `name` and `description` frontmatter.
+1. Create `<group>/skills/<name>/SKILL.md` (make a new top-level group folder for a new project) with `name` and `description` frontmatter.
 2. Write the description as *when to use it*. Claude decides whether to load the skill from that line alone.
 3. Run `./install.sh` again.

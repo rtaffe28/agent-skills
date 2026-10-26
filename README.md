@@ -17,6 +17,8 @@ Personal Claude Code skills, grouped by project or context. Each skill lives in 
 | [`stack-down`](phave/skills/stack-down/SKILL.md) | Stopping or destroying a stack without losing work |
 | [`ai-test`](phave/skills/ai-test/SKILL.md) | Claude tests a feature with throwaway Playwright scripts and screenshots, and reports as an Artifact |
 | [`manual-test`](phave/skills/manual-test/SKILL.md) | Claude seeds the data and writes a step-by-step plan for you to test by hand |
+| [`arch-plan`](phave/skills/arch-plan/SKILL.md) | Architecture-first plan (diagrams + interfaces), sliced if large, critic/defender debate, Artifact for review |
+| [`implement-plan`](phave/skills/implement-plan/SKILL.md) | Builds an `arch-plan` plan slice by slice: interfaces first, then test-first behavior |
 
 ## Install
 

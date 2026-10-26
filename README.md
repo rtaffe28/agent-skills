@@ -13,6 +13,8 @@ Personal Claude Code skills, grouped by project or context. Each skill lives in 
 | [`commit-pr-workflow`](phave/skills/commit-pr-workflow/SKILL.md) | Branching, commit messages, and opening PRs |
 | [`review-checklist`](phave/skills/review-checklist/SKILL.md) | Reviewing a diff or PR against a fixed checklist |
 | [`tdd`](phave/skills/tdd/SKILL.md) | Test-first changes: write a failing test, make it pass, refactor |
+| [`stack-up`](phave/skills/stack-up/SKILL.md) | Bringing up a phave-ng stack with the `stack` CLI (stack-ng) |
+| [`stack-down`](phave/skills/stack-down/SKILL.md) | Stopping or destroying a stack without losing work |
 
 ## Install
 

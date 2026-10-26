@@ -15,6 +15,8 @@ Personal Claude Code skills, grouped by project or context. Each skill lives in 
 | [`tdd`](phave/skills/tdd/SKILL.md) | Test-first changes: write a failing test, make it pass, refactor |
 | [`stack-up`](phave/skills/stack-up/SKILL.md) | Bringing up a phave-ng stack with the `stack` CLI (stack-ng) |
 | [`stack-down`](phave/skills/stack-down/SKILL.md) | Stopping or destroying a stack without losing work |
+| [`ai-test`](phave/skills/ai-test/SKILL.md) | Claude tests a feature with throwaway Playwright scripts and screenshots, and reports as an Artifact |
+| [`manual-test`](phave/skills/manual-test/SKILL.md) | Claude seeds the data and writes a step-by-step plan for you to test by hand |
 
 ## Install
 

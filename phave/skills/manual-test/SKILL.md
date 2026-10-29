@@ -7,6 +7,14 @@ description: Use when the user wants to test a phave-ng feature themselves, or a
 
 You prepare everything and the user does the testing. Your job is to make sure that when they open step 1, all the data and state they need already exists, and every step tells them exactly where to go and what they should see.
 
+## Who the tester is
+
+The user is **Ryan, `ryan@phave.com`** (password `master` locally). Build everything around that login:
+
+- Sign in as `ryan@phave.com` in every seed or probe script (`signInAsAcme(page, { email: "ryan@phave.com" })`), never `nick@phave.com` or the e2e operator. Whatever the seed creates is then authored by Ryan, and his test sends and notifications reach him.
+- Ryan owns two local subscriptions, **Acme Holdings** (`acme`, the demo data) and **test**. Sign-in may land on either. Seed into the subscription Ryan's browser is on (`select t.slug from session s join tenant t on t.id = s.active_tenant_id where s.user_id = (select id from "user" where email = 'ryan@phave.com') order by s.last_seen_at desc limit 1`), Acme Holdings unless that says otherwise. After signing in, switch the script's session to it (`POST /api/session/tenant` with `{ tenantId }`) and check the switch took before writing anything.
+- The plan's Setup names the login as `ryan@phave.com` and the subscription by name. Other logins (a viewer for permission checks, and so on) appear only in the steps that need them.
+
 ## 1. Work out what the change added
 
 Same as `ai-test` step 1: read `git log` / `git diff origin/main...HEAD` in the stack's worktree and the PR description, then list every user-visible page, behavior, edge case, and regression neighbor.

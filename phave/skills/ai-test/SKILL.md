@@ -7,6 +7,14 @@ description: Use when asked to test a phave-ng feature or branch end to end, QA 
 
 The goal is real coverage of what the change added, with visual evidence. The scripts are temporary and never committed. The deliverable is the report.
 
+## Who the tester is
+
+The user is **Ryan, `ryan@phave.com`** (password `master` locally). Build everything around that login:
+
+- Sign in as `ryan@phave.com` in every seed or probe script (`signInAsAcme(page, { email: "ryan@phave.com" })`), never `nick@phave.com` or the e2e operator. Whatever the seed creates is then authored by Ryan, and his test sends and notifications reach him.
+- Ryan owns two local subscriptions, **Acme Holdings** (`acme`, the demo data) and **test**. Sign-in may land on either. Seed into the subscription Ryan's browser is on (`select t.slug from session s join tenant t on t.id = s.active_tenant_id where s.user_id = (select id from "user" where email = 'ryan@phave.com') order by s.last_seen_at desc limit 1`), Acme Holdings unless that says otherwise. After signing in, switch the script's session to it (`POST /api/session/tenant` with `{ tenantId }`) and check the switch took before writing anything.
+- The plan's Setup names the login as `ryan@phave.com` and the subscription by name. Other logins (a viewer for permission checks, and so on) appear only in the steps that need them.
+
 ## 1. Work out what the change added
 
 From the stack's worktree (`<stacks_dir>/<name>/phave-ng`):

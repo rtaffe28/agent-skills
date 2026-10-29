@@ -19,6 +19,7 @@ Personal Claude Code skills, grouped by project or context. Each skill lives in 
 | [`manual-test`](phave/skills/manual-test/SKILL.md) | Claude seeds the data and writes a step-by-step plan for you to test by hand |
 | [`arch-plan`](phave/skills/arch-plan/SKILL.md) | Architecture-first plan (diagrams + interfaces), sliced if large, critic/defender debate, Artifact for review |
 | [`implement-plan`](phave/skills/implement-plan/SKILL.md) | Builds an `arch-plan` plan slice by slice: interfaces first, then test-first behavior |
+| [`pr-babysit`](phave/skills/pr-babysit/SKILL.md) | Watches a PR, fixes failing CI, resolves conflicts with main, until green and mergeable |
 
 ## Install
 

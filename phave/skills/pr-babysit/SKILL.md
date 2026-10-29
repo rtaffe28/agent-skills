@@ -1,11 +1,11 @@
 ---
 name: pr-babysit
-description: Use when asked to monitor, watch, or babysit a pull request, get a PR green, fix failing CI or checks, or resolve merge conflicts with main. Watches the PR's checks and mergeability, diagnoses and fixes failing phave-ng CI jobs, merges main to resolve conflicts, pushes the fixes, and repeats until the PR is green and mergeable.
+description: Use when asked to monitor, watch, or babysit a pull request, get a PR green, fix failing CI or checks, resolve merge conflicts with main, or address PR review comments. Watches the PR's checks, mergeability, and review threads; fixes failing phave-ng CI jobs, merges main to resolve conflicts, implements and replies to every review comment, pushes the fixes, and repeats until the PR is green, mergeable, and has no unaddressed feedback.
 ---
 
-# Babysit a PR until it's green and mergeable
+# Babysit a PR until it's green, mergeable, and every review comment is addressed
 
-Invoking this skill authorizes **normal pushes to the PR's own branch**. It does not authorize force-pushing, merging the PR, or touching someone else's PR. Ask for each of those.
+Invoking this skill authorizes **normal pushes to the PR's own branch** and **replying to and resolving review threads on it**. It does not authorize force-pushing, merging the PR, or touching someone else's PR. Ask for each of those.
 
 ## 1. Find the PR and a place to work
 
@@ -28,8 +28,9 @@ Handle things in this order:
 
 1. **`mergeable: CONFLICTING`** (`mergeStateStatus: DIRTY`): resolve conflicts first (step 4). CI results on a conflicting PR are stale anyway.
 2. **Failing checks:** fix them (step 3).
-3. **Pending checks:** wait (step 5).
-4. **All green and mergeable:** report (step 6).
+3. **Unaddressed review comments:** address them (step 5). Do this even while checks are pending, so the fixes ride the next CI run.
+4. **Pending checks:** wait (step 6).
+5. **All green, mergeable, and no unaddressed feedback:** report (step 7).
 
 ## 3. Fix failing CI
 
@@ -77,7 +78,7 @@ If the only fix is one of those, stop and ask.
 
 ### Commit and push
 
-Commit per `commit-pr-workflow` (e.g. `fix(ci): <what was wrong>`), then run `git push` (never `--force`). Go to step 5.
+Commit per `commit-pr-workflow` (e.g. `fix(ci): <what was wrong>`), then run `git push` (never `--force`). Go to step 6.
 
 ## 4. Resolve conflicts with main
 
@@ -121,7 +122,63 @@ git commit --no-edit          # keeps the merge commit message
 git push
 ```
 
-## 5. Watch
+## 5. Address review comments
+
+### Collect every piece of feedback
+
+Inline threads, with whether they're resolved:
+
+```sh
+gh api graphql -F owner=phavesoftware -F repo=<repo> -F n=<n> -f query='
+query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$n){
+  reviewThreads(first:100){nodes{id isResolved isOutdated path line
+    comments(first:50){nodes{databaseId author{login} body createdAt}}}}}}}'
+```
+
+Plus review summaries and general PR comments:
+
+```sh
+gh pr view <n> --json reviews,comments
+```
+
+Work on: every **unresolved** thread, every review with `CHANGES_REQUESTED` or a body containing requests, and every general comment that asks for something. Include bot reviewers (e.g. Claude review, CodeQL, docs audit); their findings count too. Skip threads where your reply is the last word and the reviewer hasn't responded since.
+
+### Triage each comment
+
+| Kind | Do |
+|---|---|
+| **Actionable change** (bug, naming, missing test, style, simplification) | Implement it |
+| **Question** | Answer it in the thread, with `path:line` references. If the answer reveals a real problem, it's actionable. |
+| **Suggestion you believe is wrong** | Don't change the code. Reply with the concrete reason (the constraint, the caller, the test that would break) and leave the thread open for the reviewer. |
+| **Valid but out of scope** | Reply proposing a follow-up issue. Don't grow the PR. |
+| **Needs the user** (changes a design decision or scope, two reviewers disagree, product behavior is unclear) | Ask the user before doing anything |
+
+Read the code around each comment before deciding. A comment on an outdated line (`isOutdated`) may already be fixed; check the current code.
+
+### Implement the fixes
+
+- Group related comments into logical commits, e.g. `refactor: rename X per review`, `test: cover empty input per review`.
+- Fix the general case the reviewer pointed at, not just the one line: if they flagged a pattern, grep for the other instances in the PR's diff.
+- Follow `tdd` for anything behavioral: a missing test or a bug gets a failing test first.
+- Run the local checks for what you touched (step 3's table), then `git push`.
+
+### Reply on every thread
+
+After the push, reply in each thread you handled, so the reviewer can see what happened without diffing:
+
+```sh
+gh api repos/phavesoftware/<repo>/pulls/<n>/comments/<databaseId>/replies -f body='Fixed in <sha>: <one line on what changed>'
+```
+
+For review summaries and general comments, use `gh pr comment <n> --body '...'`.
+
+- **Fixed:** "Fixed in `<sha>`: ..." Then resolve the thread (`gh api graphql -f query='mutation{resolveReviewThread(input:{threadId:"<id>"}){thread{isResolved}}}'`).
+- **Answered, pushed back, or deferred:** reply, but **leave it unresolved** so the reviewer decides.
+- Keep replies short and factual. Don't thank, apologize, or restate the comment.
+
+Once all requested changes are addressed, tell the user who requested changes. Ask before re-requesting their review (`gh pr edit <n> --add-reviewer <login>`).
+
+## 6. Watch
 
 After each push, wait for the new run instead of polling:
 
@@ -129,22 +186,24 @@ After each push, wait for the new run instead of polling:
 gh pr checks <n> --watch --fail-fast     # run in the background; you'll be notified when it exits
 ```
 
-When it exits, go back to step 2. For a long-running watch the user wants kept up over time (new pushes from teammates, main moving), suggest `/loop`.
+When it exits, go back to step 2. New review comments can arrive at any time, so re-check threads on every pass. For a long-running watch the user wants kept up over time (new reviews, pushes from teammates, main moving), suggest `/loop`.
 
 ### Stop and report, instead of looping, when:
 
 - The same check has failed after **3** fix attempts.
 - The failure is already broken on main, or is infra that a rerun didn't fix.
 - A conflict needs a product or design decision (both sides changed the same behavior differently).
-- A reviewer requested changes (`reviewDecision: CHANGES_REQUESTED`). Summarize their comments; don't address them unless asked.
+- A review comment needs the user's decision (see the triage table).
+- A reviewer pushed back on your reply and the disagreement isn't resolved by the code.
 
-## 6. Report
+## 7. Report
 
 When everything is green and mergeable, or you've stopped:
 
 - PR link and its final state: checks passing/failing, mergeable or not, review status.
 - Each fix pushed: commit, which check it fixed, and the root cause in one line.
 - Conflicts resolved: which files, and how each was decided.
+- Review comments: each one marked fixed (with commit), answered, pushed back (with reason), deferred, or waiting on the user.
 - Anything left for the user, and why you stopped.
 
 Don't merge the PR. That's the user's call.

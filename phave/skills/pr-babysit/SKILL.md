@@ -1,9 +1,9 @@
 ---
 name: pr-babysit
-description: Use when asked to monitor, watch, or babysit a pull request, get a PR green, fix failing CI or checks, resolve merge conflicts with main, or address PR review comments. Watches the PR's checks, mergeability, and review threads; fixes failing phave-ng CI jobs, merges main to resolve conflicts, implements and replies to every review comment, pushes the fixes, and repeats until the PR is green, mergeable, and has no unaddressed feedback.
+description: Use when asked to monitor, watch, or babysit a pull request, get a PR green, fix failing CI or checks, resolve merge conflicts with main, or address PR review comments. Watches the PR's checks, mergeability, and review threads; fixes failing phave-ng CI jobs, merges main to resolve conflicts, implements and replies to every review comment, runs its own review of the PR and fixes what it finds, pushes the fixes, and repeats until the PR is green, mergeable, and has no unaddressed feedback.
 ---
 
-# Babysit a PR until it's green, mergeable, and every review comment is addressed
+# Babysit a PR until it's green, mergeable, reviewed, and every review comment is addressed
 
 Invoking this skill authorizes **normal pushes to the PR's own branch** and **replying to and resolving review threads on it**. It does not authorize force-pushing, merging the PR, or touching someone else's PR. Ask for each of those.
 
@@ -29,8 +29,9 @@ Handle things in this order:
 1. **`mergeable: CONFLICTING`** (`mergeStateStatus: DIRTY`): resolve conflicts first (step 4). CI results on a conflicting PR are stale anyway.
 2. **Failing checks:** fix them (step 3).
 3. **Unaddressed review comments:** address them (step 5). Do this even while checks are pending, so the fixes ride the next CI run.
-4. **Pending checks:** wait (step 6).
-5. **All green, mergeable, and no unaddressed feedback:** report (step 7).
+4. **Not yet self-reviewed** (or the diff changed substantially since the last self-review): review it (step 6).
+5. **Pending checks:** wait (step 7).
+6. **All green, mergeable, self-reviewed, and no unaddressed feedback:** report (step 8).
 
 ## 3. Fix failing CI
 
@@ -78,7 +79,7 @@ If the only fix is one of those, stop and ask.
 
 ### Commit and push
 
-Commit per `commit-pr-workflow` (e.g. `fix(ci): <what was wrong>`), then run `git push` (never `--force`). Go to step 6.
+Commit per `commit-pr-workflow` (e.g. `fix(ci): <what was wrong>`), then run `git push` (never `--force`). Go to step 7.
 
 ## 4. Resolve conflicts with main
 
@@ -178,7 +179,26 @@ For review summaries and general comments, use `gh pr comment <n> --body '...'`.
 
 Once all requested changes are addressed, tell the user who requested changes. Ask before re-requesting their review (`gh pr edit <n> --add-reviewer <login>`).
 
-## 6. Watch
+## 6. Review the PR yourself
+
+Don't rely only on CI and human reviewers. Review the whole PR as if you were a reviewer seeing it fresh.
+
+- Run the `review-checklist` skill against the PR (`gh pr diff <n>` plus `gh pr view <n>` for the stated intent). Cover the **whole** diff against base, not just your own fixes.
+- Also check what babysitting itself introduced: conflict resolutions that dropped one side's intent, CI fixes that only treat the symptom, review fixes that broke a nearby caller.
+- Read the surrounding code, not just the hunks. Grep for callers of anything whose signature or behavior changed.
+
+Handle the findings with the same triage as review comments (step 5):
+
+| Finding | Do |
+|---|---|
+| `blocker` / `should-fix` with an obvious fix | Fix it, test-first for behavior (`tdd`), run the local checks, and push |
+| Needs a design, scope, or product decision | Ask the user |
+| `nit` | Fix it if it's trivial and inside the PR's own lines. Otherwise list it in the report. |
+
+- **Don't post your self-review as PR comments.** Fix the issues, or report them to the user.
+- Re-run the self-review after any substantial change (a conflict merge, a large review fix), but not after every small commit.
+
+## 7. Watch
 
 After each push, wait for the new run instead of polling:
 
@@ -196,7 +216,7 @@ When it exits, go back to step 2. New review comments can arrive at any time, so
 - A review comment needs the user's decision (see the triage table).
 - A reviewer pushed back on your reply and the disagreement isn't resolved by the code.
 
-## 7. Report
+## 8. Report
 
 When everything is green and mergeable, or you've stopped:
 
@@ -204,6 +224,7 @@ When everything is green and mergeable, or you've stopped:
 - Each fix pushed: commit, which check it fixed, and the root cause in one line.
 - Conflicts resolved: which files, and how each was decided.
 - Review comments: each one marked fixed (with commit), answered, pushed back (with reason), deferred, or waiting on the user.
+- Self-review: issues found and fixed (with commits), and any left for the user, ranked by severity.
 - Anything left for the user, and why you stopped.
 
 Don't merge the PR. That's the user's call.
